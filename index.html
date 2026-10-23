@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SQLite Database Interface</title>
+</head>
+<body>
+    <h1>Database Management Panel</h1>
+
+    <!-- Form to Add Data -->
+    <section>
+        <h2>Add New Record</h2>
+        <form id="dataForm" action="/api/users" method="POST">
+            <label for="username">Name:</label>
+            <input type="text" id="username" name="username" required>
+            
+            <label for="useremail">Email:</label>
+            <input type="email" id="useremail" name="useremail" required>
+            
+            <button type="submit">Submit to Database</button>
+        </form>
+    </section>
+
+    <hr>
+
+    <!-- Table to Display Data -->
+    <section>
+        <h2>Stored Records</h2>
+        <button id="fetchDataBtn">Refresh Data</button>
+        
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody id="dataTableBody"></tbody>
+        </table>
+    </section>
+
+    <script src="app.js"></script>
+</body>
+</html>
