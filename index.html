@@ -2,44 +2,78 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>SQLite Database Interface</title>
+    <title>SQLite Full CRUD Interface</title>
 </head>
-<body>
-    <h1>Database Management Panel</h1>
+<!-- Clean, basic structure using inline styles to keep content centered and modern -->
+<body style="font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 20px;">
 
-    <!-- Form to Add Data -->
-    <section>
-        <h2>Add New Record</h2>
-        <form id="dataForm" action="/api/users" method="POST">
+    <h1>Database Management Panel (CRUD)</h1>
+
+    <!-- ========================================== -->
+    <!-- 1. CREATE SECTION                          -->
+    <!-- ========================================== -->
+    <section style="margin-bottom: 30px;">
+        <h2>[C] Create: Add New Record</h2>
+        <!-- NOTE: Removed the 'action' and 'method' attributes so JavaScript can handle submission smoothly -->
+        <form id="createForm">
             <label for="username">Name:</label>
-            <input type="text" id="username" name="username" required>
+            <input type="text" id="username" required style="margin-right: 15px; padding: 4px;">
             
             <label for="useremail">Email:</label>
-            <input type="email" id="useremail" name="useremail" required>
+            <input type="email" id="useremail" required style="margin-right: 15px; padding: 4px;">
             
-            <button type="submit">Submit to Database</button>
+            <button type="submit" style="background-color: #28a745; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px;">
+                Submit to Database
+            </button>
         </form>
     </section>
 
     <hr>
 
-    <!-- Table to Display Data -->
-    <section>
-        <h2>Stored Records</h2>
-        <button id="fetchDataBtn">Refresh Data</button>
+    <!-- ========================================== -->
+    <!-- 2. UPDATE SECTION                          -->
+    <!-- ========================================== -->
+    <section style="margin-bottom: 30px;">
+        <h2>[U] Update: Modify Existing Record</h2>
+        <form id="updateForm">
+            <label for="updateId">Target User ID:</label>
+            <input type="number" id="updateId" required style="width: 60px; margin-right: 15px; padding: 4px;">
+
+            <label for="updateEmail">New Email Address:</label>
+            <input type="email" id="updateEmail" required style="margin-right: 15px; padding: 4px;">
+
+            <button type="submit" style="background-color: #007bff; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px;">
+                Update Record
+            </button>
+        </form>
+    </section>
+
+    <hr>
+
+    <!-- ========================================== -->
+    <!-- 3. READ & DELETE SECTION                   -->
+    <!-- ========================================== -->
+    <section style="margin-bottom: 30px;">
+        <h2>[R] Read & [D] Delete: Stored Records</h2>
+        <button id="fetchDataBtn" style="margin-bottom: 15px; padding: 6px 12px; cursor: pointer;">
+            🔄 Refresh Data
+        </button>
         
-        <table border="2">
+        <table border="1" style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
+                <tr style="background-color: #f2f2f2;">
+                    <th style="padding: 8px;">ID</th>
+                    <th style="padding: 8px;">Name</th>
+                    <th style="padding: 8px;">Email</th>
+                    <th style="padding: 8px;">Actions</th>
                 </tr>
             </thead>
+            <!-- Target container where app.js will dynamically paint rows -->
             <tbody id="dataTableBody"></tbody>
         </table>
     </section>
 
+    <!-- Connects frontend user inputs to our JavaScript logic file -->
     <script src="app.js"></script>
 </body>
 </html>
