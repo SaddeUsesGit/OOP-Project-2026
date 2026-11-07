@@ -1,0 +1,12 @@
+{
+  "status": "TEST_PLAN_READY",
+  "taskId": "TODO-7dffb205",
+  "cases": [
+    {
+      "id": "C1",
+      "given": "The added Java example in ticket-db-dev-builder and an available Java 21 toolchain.",
+      "when": "The example is compiled and executed using Java 21.",
+      "then": "Compilation and execution succeed, and the program emits nonempty standard output, without asserting the greeting's wording."
+    }
+  ]
+}
