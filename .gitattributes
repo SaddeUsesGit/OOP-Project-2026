@@ -1,0 +1,3 @@
+# Keep wrapper launchers executable on their target platforms.
+/mvnw text eol=lf
+/mvnw.cmd text eol=crlf

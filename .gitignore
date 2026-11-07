@@ -1,0 +1,6 @@
+# Java build outputs
+/target/
+*.class
+
+# Installed web dependencies
+/node_modules/
