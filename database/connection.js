@@ -60,6 +60,32 @@ async function openDatabase() {
             business_criticality TEXT NOT NULL
                 CHECK (business_criticality IN ('low', 'medium', 'high', 'critical'))
         )`);
+        await run(db, `CREATE TABLE IF NOT EXISTS tickets (
+            id INTEGER PRIMARY KEY,
+            reporter_id INTEGER NOT NULL REFERENCES users(id),
+            category_id INTEGER NOT NULL REFERENCES incident_categories(id),
+            service_id INTEGER NOT NULL REFERENCES it_services(id),
+            assigned_technician_id INTEGER REFERENCES users(id),
+            verifier_id INTEGER REFERENCES users(id),
+            closer_id INTEGER REFERENCES users(id),
+            description TEXT NOT NULL,
+            impact TEXT NOT NULL CHECK (impact IN ('low', 'medium', 'high')),
+            urgency TEXT NOT NULL CHECK (urgency IN ('low', 'medium', 'high')),
+            service_criticality_snapshot TEXT NOT NULL
+                CHECK (service_criticality_snapshot IN ('low', 'medium', 'high', 'critical')),
+            priority TEXT CHECK (priority IN ('P1', 'P2', 'P3', 'P4')),
+            status TEXT NOT NULL DEFAULT 'open'
+                CHECK (status IN ('open', 'assigned', 'in_progress', 'resolved', 'verified', 'closed')),
+            created_at TEXT NOT NULL,
+            assigned_at TEXT,
+            resolved_at TEXT,
+            verified_at TEXT,
+            closed_at TEXT,
+            resolution_summary TEXT,
+            closure_summary TEXT,
+            response_due_at TEXT,
+            resolution_due_at TEXT
+        )`);
         return db;
     } catch (error) {
         await closeDatabase(db);
