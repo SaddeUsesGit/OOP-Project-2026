@@ -1,6 +1,5 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const { openDatabase } = require('./database/connection');
 
 const app = express();
 const PORT = 3000;
@@ -10,18 +9,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname)); // Host files out of your project root folder
 
-// Connects to local persistent file engine storage database
-const db = new sqlite3.Database('./database.db', (err) => {
-    if (err) return console.error('Database initiation failure:', err.message);
-    console.log('Connected to the SQLite database.');
-});
-
-// Setup target schema table layout columns if missing from file instance
-db.run(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE
-)`);
+// Assigned only after connection preparation and schema setup finish.
+let db;
 
 // [CREATE] ROUTE
 app.post('/api/users', (req, res) => {
@@ -71,5 +60,12 @@ app.delete('/api/users/:id', (req, res) => {
     });
 });
 
-// Run loop listening routine configuration parameter values
-app.listen(PORT, () => console.log(`Server successfully active on http://localhost:${PORT}`));
+// Routes become reachable only after SQLite and the existing schema are ready.
+openDatabase().then((connection) => {
+    db = connection;
+    console.log('Connected to the SQLite database.');
+    app.listen(PORT, () => console.log(`Server successfully active on http://localhost:${PORT}`));
+}).catch((error) => {
+    console.error('Database initiation failure:', error.message);
+    process.exitCode = 1;
+});

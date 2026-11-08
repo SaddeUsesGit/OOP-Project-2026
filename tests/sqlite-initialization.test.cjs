@@ -14,7 +14,7 @@ const observer = path.join(__dirname, 'helpers/sqlite-observer.cjs');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 async function fixture(t) {
-  const home = await fsp.mkdtemp(path.join(os.tmpdir(), 'sqlite-initialization-'));
+  const home = await fsp.realpath(await fsp.mkdtemp(path.join(os.tmpdir(), 'sqlite-initialization-')));
   const stops = [];
   t.after(async () => {
     try { for (const stop of stops) await stop(); }

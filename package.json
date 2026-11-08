@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "db:init": "node database/initialize.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

@@ -66,8 +66,19 @@ npm's external cache; do not modify the manifest/lockfile to fix setup.
 Java-only checks do not need npm, SQLite, Chromium, or a running web server.
 Neither application needs external services for the Java build smoke tests.
 Do not run `node server.js` as generic preparation: it binds port 3000, opens the
-cwd-relative database, and serves the repository root. Web verification still has
-no established automated runner; root `npm test` is a deliberate failure placeholder.
+checkout-root database, and serves the repository root. To initialize that same
+database without HTTP startup, run `npm run db:init` at the checkout root, or
+invoke `node /absolute/path/to/checkout/database/initialize.js` from another cwd.
+Initialization creates the existing users table only when absent, preserves
+records, and closes its connection. It does not migrate or repair existing schemas.
+The server and initializer share `database/connection.js`; each connection enables
+foreign keys before schema/data use. The server listens only after setup completes.
+
+Focused SQLite integration coverage uses Node's built-in runner:
+`node --test --test-reporter=tap tests/sqlite-initialization.test.cjs`.
+It uses temporary project copies and real SQLite; it does not use root data as
+fixtures. TAP reports each declared test name and outcome. Root `npm test` remains
+a deliberate failure placeholder, not an alias for this focused suite.
 
 ## Source ownership and test placement
 
