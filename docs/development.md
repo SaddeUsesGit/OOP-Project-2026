@@ -66,7 +66,7 @@ npm's external cache; do not modify the manifest/lockfile to fix setup.
 Java-only checks do not need npm, SQLite, Chromium, or a running web server.
 Neither application needs external services for the Java build smoke tests.
 Do not run `node server.js` as generic preparation: it binds port 3000, opens the
-checkout-root database, and serves the repository root. To initialize that same
+checkout-root database, and starts the account-access web application. To initialize that same
 database without HTTP startup, run `npm run db:init` at the checkout root, or
 invoke `node /absolute/path/to/checkout/database/initialize.js` from another cwd.
 Initialization creates `users` only when absent, with `id INTEGER PRIMARY KEY`,
@@ -84,7 +84,11 @@ receives the same rejection. No table, records, database file or sidecars are
 automatically migrated, reset or removed. For an intentional fresh database, stop
 all clients, back up the database and any WAL/SHM/journal sidecars, explicitly move
 that set out of the checkout, then rerun setup. See README for the manual steps.
-The prototype browser/API CRUD remains unchanged; account integration is deferred.
+The prototype browser/API CRUD is retired. Existing accounts can sign in, read
+only their public current identity and sign out. See
+[Account access](account-access.md) for explicit developer provisioning with
+compatible scrypt hashes and browser-session/restore limitations. Only the
+intended browser entry files and styles are served, not repository internals.
 The server and initializer share `database/connection.js`; each connection enables
 foreign keys before schema/data use. The server listens only after setup completes.
 
@@ -93,7 +97,11 @@ Focused SQLite integration coverage uses Node's built-in runner:
 Account schema/constraints, prototype rejection and repeat preservation use
 `node --test --test-reporter=tap tests/sqlite-accounts.test.cjs`.
 Both suites use temporary project copies and real SQLite; they do not use root
-data as fixtures. TAP reports each declared test name and outcome. Rejection
+data as fixtures. Account-access browser/API coverage uses
+`node --test --test-reporter=tap tests/web/account-access.test.cjs`, with the
+declared Playwright dependency and an available Chromium binary. It owns port
+3000 for isolated temporary application copies; stop a separate development
+server before running it. TAP reports each declared test name and outcome. Rejection
 diagnostics are emitted for semantic inspection of actionable backup/reset
 guidance, without wording-dependent assertions. Root `npm test` remains
 a deliberate failure placeholder, not an alias for this focused suite.

@@ -18,7 +18,7 @@ without starting Express. A fresh database gets the account table:
 - `id INTEGER PRIMARY KEY`: stable account identity; SQLite assigns it when omitted.
 - `display_name TEXT NOT NULL`
 - `email TEXT NOT NULL UNIQUE`: sign-in identifier using ordinary SQLite uniqueness.
-- `password_hash TEXT NOT NULL`: stores a hash supplied by future credential work,
+- `password_hash TEXT NOT NULL`: stores an encoded password hash,
   not plaintext; initialization does not hash passwords or create accounts.
 - `role TEXT NOT NULL`: exactly one of `employee`, `technician`, `administrator`.
 
@@ -43,10 +43,14 @@ node /absolute/path/to/checkout/database/initialize.js
 The server uses the same database and prepared connection setup. Running
 `node /absolute/path/to/checkout/server.js` also prepares the account schema
 before accepting requests and uses its existing startup-failure path on prototype
-incompatibility. The prototype browser CRUD and `/api/users` integration remain
-unchanged and are not compatible account-creation interfaces; their adaptation,
-authentication, credential creation and role enforcement are deferred. Every opened connection enables foreign-key
-enforcement separately; this setting is not permanently stored in the file.
+incompatibility. The prototype browser CRUD and `/api/users` operations are retired.
+The browser now provides existing-account sign-in, current display name/role and
+sign-out. Only intended browser assets are public, not the repository/database.
+See [Account access and explicit local provisioning](docs/account-access.md) for
+compatible password hashing, account insertion/verification, API behavior and
+browser-session limitations. No accounts are created automatically on startup.
+Every opened connection enables foreign-key enforcement separately; this setting
+is not permanently stored in the file.
 No ticket tables or Java persistence changes are included.
 
 See [Development and verification](docs/development.md) for Java prerequisites,

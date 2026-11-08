@@ -1,71 +1,115 @@
+'use strict';
+
 const express = require('express');
+const path = require('node:path');
+const { randomBytes } = require('node:crypto');
 const { openDatabase } = require('./database/connection');
+const { verifyPassword } = require('./auth/password');
 
 const app = express();
 const PORT = 3000;
-
-// Middleware to capture JSON structures sent out by frontend JavaScript fetch blocks
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname)); // Host files out of your project root folder
-
-// Assigned only after connection preparation and schema setup finish.
+const sessions = new Map();
+const cookieName = 'account_session';
 let db;
 
-// [CREATE] ROUTE
-app.post('/api/users', (req, res) => {
-    const { username, useremail } = req.body;
-    const sql = `INSERT INTO users (name, email) VALUES (?, ?)`;
-    
-    db.run(sql, [username, useremail], function(err) {
-        if (err) return res.status(400).json({ error: err.message });
-        res.json({ message: "Record added successfully", id: this.lastID });
-    });
+app.use(express.json());
+app.use('/api', (req, res, next) => {
+    res.set('Cache-Control', 'no-store');
+    next();
 });
 
-// [READ] ROUTE
-app.get('/api/users', (req, res) => {
-    const sql = `SELECT * FROM users`;
-    
-    db.all(sql, [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
+// Never expose the checkout as a static directory: it contains private data.
+for (const [url, file] of Object.entries({
+    '/': 'index.html',
+    '/index.html': 'index.html',
+    '/app.js': 'app.js',
+    '/account-access.js': 'account-access.js',
+    '/account-access.css': 'account-access.css'
+})) {
+    app.get(url, (req, res) => {
+        res.set('Cache-Control', 'no-store');
+        res.sendFile(path.join(__dirname, file));
     });
+}
+
+// Retired for every method and sign-in state; these paths do not read SQLite.
+app.use('/api/users', (req, res) => {
+    res.status(410).json({ error: 'Account management is unavailable.' });
 });
 
-// [UPDATE] ROUTE
-app.put('/api/users', (req, res) => {
-    const { id, email } = req.body;
-    const sql = `UPDATE users SET email = ? WHERE id = ?`;
-    
-    db.run(sql, [email, id], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        
-        if (this.changes === 0) {
-            return res.status(404).json({ error: "No user found matching that target ID identifier" });
-        }
-        
-        res.json({ message: "Update completed successfully" });
+function sessionToken(req) {
+    const cookie = (req.headers.cookie || '').split(';')
+        .map(part => part.trim()).find(part => part.startsWith(cookieName + '='));
+    return cookie ? cookie.slice(cookieName.length + 1) : null;
+}
+
+function cookieOptions(req) {
+    return { httpOnly: true, sameSite: 'lax', path: '/', secure: req.secure };
+}
+
+function endSession(req, res) {
+    sessions.delete(sessionToken(req));
+    res.clearCookie(cookieName, cookieOptions(req));
+}
+
+function get(sql, parameters) {
+    return new Promise((resolve, reject) => {
+        db.get(sql, parameters, (error, row) => error ? reject(error) : resolve(row));
     });
+}
+
+function publicAccount(row) {
+    return { id: row.id, display_name: row.display_name, email: row.email, role: row.role };
+}
+
+app.get('/api/session', async (req, res) => {
+    const id = sessions.get(sessionToken(req));
+    if (id === undefined) return res.json({ account: null });
+    const row = await get('SELECT id, display_name, email, role FROM users WHERE id = ?', [id]);
+    if (!row) {
+        endSession(req, res);
+        return res.json({ account: null });
+    }
+    res.json({ account: publicAccount(row) });
 });
 
-// [DELETE] ROUTE
-app.delete('/api/users/:id', (req, res) => {
-    const userId = req.params.id;
-    const sql = `DELETE FROM users WHERE id = ?`;
-    
-    db.run(sql, [userId], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: "Deletion complete." });
-    });
+app.post('/api/session', async (req, res) => {
+    const { email, password } = req.body || {};
+    if (typeof email !== 'string' || typeof password !== 'string') {
+        endSession(req, res);
+        return res.status(400).json({ error: 'Email and password are required.' });
+    }
+    const row = await get(
+        'SELECT id, display_name, email, password_hash, role FROM users WHERE email = ?', [email]
+    );
+    if (!row || !await verifyPassword(password, row.password_hash)) {
+        endSession(req, res);
+        return res.status(401).json({ error: 'Sign-in was unsuccessful. Check your credentials.' });
+    }
+    endSession(req, res);
+    const token = randomBytes(32).toString('base64url');
+    sessions.set(token, row.id);
+    // No Max-Age or Expires: this is intentionally a browser-session cookie.
+    res.cookie(cookieName, token, cookieOptions(req));
+    res.json({ account: publicAccount(row) });
 });
 
-// Routes become reachable only after SQLite and the existing schema are ready.
-openDatabase().then((connection) => {
+app.delete('/api/session', (req, res) => {
+    endSession(req, res);
+    res.json({ account: null });
+});
+
+// No internal error, query, hash or submitted credential is returned to clients.
+app.use((error, req, res, next) => {
+    if (res.headersSent) return next(error);
+    res.status(error.type === 'entity.parse.failed' ? 400 : 500)
+        .json({ error: 'The request could not be completed.' });
+});
+
+openDatabase().then(connection => {
     db = connection;
-    console.log('Connected to the SQLite database.');
-    app.listen(PORT, () => console.log(`Server successfully active on http://localhost:${PORT}`));
-}).catch((error) => {
-    console.error('Database initiation failure:', error.message);
+    app.listen(PORT, () => console.log(`Server active on http://localhost:${PORT}`));
+}).catch(error => {
+    console.error('Database initialization failure:', error.message);
     process.exitCode = 1;
 });

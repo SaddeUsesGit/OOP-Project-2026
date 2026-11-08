@@ -2,78 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>SQLite Full CRUD Interface</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Account access · I-ITSM</title>
+    <link rel="stylesheet" href="/account-access.css">
+    <script defer src="/account-access.js"></script>
+    <script defer src="/app.js"></script>
 </head>
-<!-- Clean, basic structure using inline styles to keep content centered and modern -->
-<body style="font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 20px;">
-
-    <h1>Database Management Panel (CRUD)</h1>
-
-    <!-- ========================================== -->
-    <!-- 1. CREATE SECTION                          -->
-    <!-- ========================================== -->
-    <section style="margin-bottom: 30px;">
-        <h2>[C] Create: Add New Record</h2>
-        <!-- NOTE: Removed the 'action' and 'method' attributes so JavaScript can handle submission smoothly -->
-        <form id="createForm">
-            <label for="username">Name:</label>
-            <input type="text" id="username" required style="margin-right: 15px; padding: 4px;">
-            
-            <label for="useremail">Email:</label>
-            <input type="email" id="useremail" required style="margin-right: 15px; padding: 4px;">
-            
-            <button type="submit" style="background-color: #28a745; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px;">
-                Submit to Database
-            </button>
-        </form>
-    </section>
-
-    <hr>
-
-    <!-- ========================================== -->
-    <!-- 2. UPDATE SECTION                          -->
-    <!-- ========================================== -->
-    <section style="margin-bottom: 30px;">
-        <h2>[U] Update: Modify Existing Record</h2>
-        <form id="updateForm">
-            <label for="updateId">Target User ID:</label>
-            <input type="number" id="updateId" required style="width: 60px; margin-right: 15px; padding: 4px;">
-
-            <label for="updateEmail">New Email Address:</label>
-            <input type="email" id="updateEmail" required style="margin-right: 15px; padding: 4px;">
-
-            <button type="submit" style="background-color: #007bff; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px;">
-                Update Record
-            </button>
-        </form>
-    </section>
-
-    <hr>
-
-    <!-- ========================================== -->
-    <!-- 3. READ & DELETE SECTION                   -->
-    <!-- ========================================== -->
-    <section style="margin-bottom: 30px;">
-        <h2>[R] Read & [D] Delete: Stored Records</h2>
-        <button id="fetchDataBtn" style="margin-bottom: 15px; padding: 6px 12px; cursor: pointer;">
-            🔄 Refresh Data
-        </button>
-        
-        <table border="1" style="width: 100%; border-collapse: collapse; text-align: left;">
-            <thead>
-                <tr style="background-color: #f2f2f2;">
-                    <th style="padding: 8px;">ID</th>
-                    <th style="padding: 8px;">Name</th>
-                    <th style="padding: 8px;">Email</th>
-                    <th style="padding: 8px;">Actions</th>
-                </tr>
-            </thead>
-            <!-- Target container where app.js will dynamically paint rows -->
-            <tbody id="dataTableBody"></tbody>
-        </table>
-    </section>
-
-    <!-- Connects frontend user inputs to our JavaScript logic file -->
-    <script src="app.js"></script>
+<body>
+    <main class="account-access" id="account-access">
+        <noscript>JavaScript is required to sign in.</noscript>
+    </main>
 </body>
 </html>
