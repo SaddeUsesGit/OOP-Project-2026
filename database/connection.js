@@ -48,6 +48,18 @@ async function openDatabase() {
             password_hash TEXT NOT NULL,
             role TEXT NOT NULL CHECK (role IN ('employee', 'technician', 'administrator'))
         )`);
+        await run(db, `CREATE TABLE IF NOT EXISTS incident_categories (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT
+        )`);
+        await run(db, `CREATE TABLE IF NOT EXISTS it_services (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT,
+            business_criticality TEXT NOT NULL
+                CHECK (business_criticality IN ('low', 'medium', 'high', 'critical'))
+        )`);
         return db;
     } catch (error) {
         await closeDatabase(db);
