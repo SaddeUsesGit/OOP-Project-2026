@@ -27,10 +27,26 @@ async function openDatabase() {
 
     try {
         await run(db, 'PRAGMA foreign_keys = ON');
+        const columns = await new Promise((resolve, reject) => {
+            db.all('PRAGMA table_info(users)', (error, rows) => error ? reject(error) : resolve(rows));
+        });
+        const prototypeFields = ['id', 'name', 'email'];
+        if (columns.length === prototypeFields.length &&
+            prototypeFields.every(name => columns.some(column => column.name === name))) {
+            throw new Error(
+                'Incompatible prototype users schema in ' + databasePath + '. ' +
+                'No data was changed. Back up the database before proceeding. ' +
+                'For a deliberate fresh start, stop all database users, back up the database ' +
+                'and any sidecars, then explicitly move the database and sidecars out of this ' +
+                'checkout and rerun initialization. No automatic reset or migration is performed.'
+            );
+        }
         await run(db, `CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            email TEXT NOT NULL UNIQUE
+            id INTEGER PRIMARY KEY,
+            display_name TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL CHECK (role IN ('employee', 'technician', 'administrator'))
         )`);
         return db;
     } catch (error) {

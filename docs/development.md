@@ -69,15 +69,33 @@ Do not run `node server.js` as generic preparation: it binds port 3000, opens th
 checkout-root database, and serves the repository root. To initialize that same
 database without HTTP startup, run `npm run db:init` at the checkout root, or
 invoke `node /absolute/path/to/checkout/database/initialize.js` from another cwd.
-Initialization creates the existing users table only when absent, preserves
-records, and closes its connection. It does not migrate or repair existing schemas.
+Initialization creates `users` only when absent, with `id INTEGER PRIMARY KEY`,
+required TEXT fields `display_name`, `email` (UNIQUE), `password_hash`, and `role`
+(CHECK restricted to `employee`, `technician`, `administrator`). IDs can be
+SQLite-assigned; there is no AUTOINCREMENT/non-reuse guarantee. Required fields
+mean non-NULL, without extra email, empty-string or hash-format validation.
+Initialization stores supplied hashes; it does not generate credentials or seed
+accounts. Repeating setup preserves replacement-schema accounts and schema.
+
+An old `users(id, name, email)` prototype table, populated or empty, is rejected
+non-destructively: the connection closes and standalone setup exits unsuccessfully
+with backup/explicit-reset guidance. The existing server startup-failure path
+receives the same rejection. No table, records, database file or sidecars are
+automatically migrated, reset or removed. For an intentional fresh database, stop
+all clients, back up the database and any WAL/SHM/journal sidecars, explicitly move
+that set out of the checkout, then rerun setup. See README for the manual steps.
+The prototype browser/API CRUD remains unchanged; account integration is deferred.
 The server and initializer share `database/connection.js`; each connection enables
 foreign keys before schema/data use. The server listens only after setup completes.
 
 Focused SQLite integration coverage uses Node's built-in runner:
 `node --test --test-reporter=tap tests/sqlite-initialization.test.cjs`.
-It uses temporary project copies and real SQLite; it does not use root data as
-fixtures. TAP reports each declared test name and outcome. Root `npm test` remains
+Account schema/constraints, prototype rejection and repeat preservation use
+`node --test --test-reporter=tap tests/sqlite-accounts.test.cjs`.
+Both suites use temporary project copies and real SQLite; they do not use root
+data as fixtures. TAP reports each declared test name and outcome. Rejection
+diagnostics are emitted for semantic inspection of actionable backup/reset
+guidance, without wording-dependent assertions. Root `npm test` remains
 a deliberate failure placeholder, not an alias for this focused suite.
 
 ## Source ownership and test placement

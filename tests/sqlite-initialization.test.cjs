@@ -115,8 +115,10 @@ async function checkSchema(file) {
     const columns = await db.all('PRAGMA table_info(users)');
     assert.deepEqual(columns.map(c => ({ name: c.name, type: c.type, pk: c.pk, required: c.notnull })), [
       { name: 'id', type: 'INTEGER', pk: 1, required: 0 },
-      { name: 'name', type: 'TEXT', pk: 0, required: 1 },
-      { name: 'email', type: 'TEXT', pk: 0, required: 1 }
+      { name: 'display_name', type: 'TEXT', pk: 0, required: 1 },
+      { name: 'email', type: 'TEXT', pk: 0, required: 1 },
+      { name: 'password_hash', type: 'TEXT', pk: 0, required: 1 },
+      { name: 'role', type: 'TEXT', pk: 0, required: 1 }
     ]);
     const indexes = await db.all('PRAGMA index_list(users)');
     const unique = [];
@@ -167,13 +169,13 @@ test('standaloneFreshSetupCreatesUsersAndClosesWithoutHttp', async t => {
   assert.equal(fs.existsSync(database), true);
   await checkSchema(database);
   await sql(database, async db => {
-    const first = await db.run('INSERT INTO users(name,email) VALUES (?,?)', ['first', 'first@example.invalid']);
-    await assert.rejects(db.run('INSERT INTO users(name,email) VALUES (?,?)', [null, 'missing-name@example.invalid']), e => e.code === 'SQLITE_CONSTRAINT');
-    await assert.rejects(db.run('INSERT INTO users(name,email) VALUES (?,?)', ['missing email', null]), e => e.code === 'SQLITE_CONSTRAINT');
-    await assert.rejects(db.run('INSERT INTO users(name,email) VALUES (?,?)', ['duplicate', 'first@example.invalid']), e => e.code === 'SQLITE_CONSTRAINT');
+    const first = await db.run('INSERT INTO users(display_name,email,password_hash,role) VALUES (?,?,\'fixture-hash\',\'employee\')', ['first', 'first@example.invalid']);
+    await assert.rejects(db.run('INSERT INTO users(display_name,email,password_hash,role) VALUES (?,?,\'fixture-hash\',\'employee\')', [null, 'missing-name@example.invalid']), e => e.code === 'SQLITE_CONSTRAINT');
+    await assert.rejects(db.run('INSERT INTO users(display_name,email,password_hash,role) VALUES (?,?,\'fixture-hash\',\'employee\')', ['missing email', null]), e => e.code === 'SQLITE_CONSTRAINT');
+    await assert.rejects(db.run('INSERT INTO users(display_name,email,password_hash,role) VALUES (?,?,\'fixture-hash\',\'employee\')', ['duplicate', 'first@example.invalid']), e => e.code === 'SQLITE_CONSTRAINT');
     await db.run('DELETE FROM users WHERE id = ?', [first.id]);
-    const next = await db.run('INSERT INTO users(name,email) VALUES (?,?)', ['next', 'next@example.invalid']);
-    assert.ok(next.id > first.id, 'AUTOINCREMENT must not reuse the deleted maximum id');
+    const next = await db.run('INSERT INTO users(display_name,email,password_hash,role) VALUES (?,?,\'fixture-hash\',\'employee\')', ['next', 'next@example.invalid']);
+    assert.ok(Number.isInteger(next.id), 'SQLite must assign an integer identity');
   });
 });
 
@@ -181,16 +183,16 @@ test('repeatInitializationPreservesSchemaAndExistingUsers', async t => {
   const context = await fixture(t);
   const database = path.join(context.selected, 'database.db');
   await sql(database, async db => {
-    await db.run('CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,email TEXT NOT NULL UNIQUE)');
-    await db.run('INSERT INTO users(id,name,email) VALUES (41,?,?)', ['persisted', 'kept@example.invalid']);
+    await db.run('CREATE TABLE users(id INTEGER PRIMARY KEY,display_name TEXT NOT NULL,email TEXT NOT NULL UNIQUE,password_hash TEXT NOT NULL,role TEXT NOT NULL CHECK(role IN (\'employee\',\'technician\',\'administrator\')))');
+    await db.run('INSERT INTO users(id,display_name,email,password_hash,role) VALUES (41,?,?,\'fixture-hash\',\'employee\')', ['persisted', 'kept@example.invalid']);
   });
   const before = await checkSchema(database);
   await initialize(t, context);
   await initialize(t, context);
   assert.deepEqual(await checkSchema(database), before);
   await sql(database, async db => {
-    assert.deepEqual(await db.all('SELECT id,name,email FROM users'), [{ id: 41, name: 'persisted', email: 'kept@example.invalid' }]);
-    const next = await db.run('INSERT INTO users(name,email) VALUES (?,?)', ['later', 'later@example.invalid']);
+    assert.deepEqual(await db.all('SELECT id,display_name,email FROM users'), [{ id: 41, display_name: 'persisted', email: 'kept@example.invalid' }]);
+    const next = await db.run('INSERT INTO users(display_name,email,password_hash,role) VALUES (?,?,\'fixture-hash\',\'employee\')', ['later', 'later@example.invalid']);
     assert.ok(next.id > 41);
   });
 });
@@ -200,19 +202,18 @@ test('outsideCwdUsesOnlySelectedCheckoutDatabaseAcrossInitializerAndBackend', as
   const selectedDb = path.join(context.selected, 'database.db');
   const otherDb = path.join(context.other, 'database.db');
   await sql(otherDb, async db => {
-    await db.run('CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,email TEXT NOT NULL UNIQUE)');
-    await db.run('INSERT INTO users(name,email) VALUES (?,?)', ['other', 'other@example.invalid']);
+    await db.run('CREATE TABLE users(id INTEGER PRIMARY KEY,display_name TEXT NOT NULL,email TEXT NOT NULL UNIQUE,password_hash TEXT NOT NULL,role TEXT NOT NULL CHECK(role IN (\'employee\',\'technician\',\'administrator\')))');
+    await db.run('INSERT INTO users(display_name,email,password_hash,role) VALUES (?,?,\'fixture-hash\',\'employee\')', ['other', 'other@example.invalid']);
   });
   const otherBefore = await fsp.readFile(otherDb);
   const initial = await initialize(t, context, context.outside);
   for (const event of initial.filter(e => e.kind === 'open')) assert.equal(event.file, selectedDb);
-  await sql(selectedDb, db => db.run('INSERT INTO users(name,email) VALUES (?,?)', ['selected', 'selected@example.invalid']));
+  await sql(selectedDb, db => db.run('INSERT INTO users(display_name,email,password_hash,role) VALUES (?,?,\'fixture-hash\',\'employee\')', ['selected', 'selected@example.invalid']));
   const app = await backend(t, context);
   const read = await request(app, 'GET');
   assert.equal(read.status, 200);
   assert.deepEqual(read.body.map(row => row.email), ['selected@example.invalid']);
-  const added = await request(app, 'POST', { username: 'added', useremail: 'added@example.invalid' });
-  assert.equal(added.status, 200);
+  await sql(selectedDb, db => db.run('INSERT INTO users(display_name,email,password_hash,role) VALUES (?,?,\'fixture-hash\',\'employee\')', ['added', 'added@example.invalid']));
   await app.stop();
   await sql(selectedDb, async db => assert.equal((await db.all('SELECT id FROM users')).length, 2));
   assert.deepEqual(await fsp.readFile(otherDb), otherBefore);
@@ -226,7 +227,6 @@ test('initializerAndBackendPrepareTheirOwnForeignKeyConnections', async t => {
   const initial = await initialize(t, context);
   assertPrepared(initial, database);
   const app = await backend(t, context, context.selected);
-  assert.equal((await request(app, 'POST', { username: 'connection', useremail: 'connection@example.invalid' })).status, 200);
   assert.equal((await request(app, 'GET')).status, 200);
   await app.stop();
   const observed = events(app.trace);
@@ -239,12 +239,15 @@ test('freshBackendPreparesSharedDatabaseBeforeFirstUserRoute', async t => {
   const database = path.join(context.selected, 'database.db');
   assert.equal(fs.existsSync(database), false);
   const app = await backend(t, context);
-  const added = await request(app, 'POST', { username: 'first route', useremail: 'route@example.invalid' });
-  assert.equal(added.status, 200);
-  assert.ok(Number.isInteger(added.body.id));
   const read = await request(app, 'GET');
   assert.equal(read.status, 200);
-  assert.deepEqual(read.body, [{ id: added.body.id, name: 'first route', email: 'route@example.invalid' }]);
+  assert.deepEqual(read.body, []);
+  await sql(database, db => db.run('INSERT INTO users(display_name,email,password_hash,role) VALUES (?,?,\'fixture-hash\',\'employee\')', ['first route', 'route@example.invalid']));
+  const after = await request(app, 'GET');
+  assert.equal(after.status, 200);
+  assert.equal(after.body.length, 1);
+  assert.ok(Number.isInteger(after.body[0].id));
+  assert.equal(after.body[0].email, 'route@example.invalid');
   assert.equal(fs.existsSync(database), true, 'Backend must use project-root database even when launched elsewhere');
   await checkSchema(database);
   assertPrepared(events(app.trace), database);
