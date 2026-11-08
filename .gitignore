@@ -4,3 +4,14 @@
 
 # Installed web dependencies
 /node_modules/
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+*storybook.log
+storybook-static
