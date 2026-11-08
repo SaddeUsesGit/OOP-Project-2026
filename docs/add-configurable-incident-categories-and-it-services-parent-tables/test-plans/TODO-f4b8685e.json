@@ -1,0 +1,30 @@
+{
+  "status": "TEST_PLAN_READY",
+  "taskId": "TODO-f4b8685e",
+  "cases": [
+    {
+      "id": "PAR-01",
+      "given": "A fresh supported SQLite database with no incident_categories or it_services tables.",
+      "when": "The existing standalone initializer runs.",
+      "then": "Initialization succeeds and both parent tables exist with zero records."
+    },
+    {
+      "id": "PAR-02",
+      "given": "The initialized incident_categories table is empty.",
+      "when": "Distinct category names are inserted with and without descriptions, including a name outside the project statement examples; inserts with NULL names and duplicate names are attempted, then valid categories are retrieved by their IDs.",
+      "then": "Valid categories receive stable integer primary-key IDs and retain their names and optional or NULL descriptions; valid new names require no schema change. NULL-name and duplicate-name inserts are rejected without adding rows."
+    },
+    {
+      "id": "PAR-03",
+      "given": "The initialized it_services table is empty.",
+      "when": "Services are inserted with each of low, medium, high and critical business criticality and with optional descriptions omitted or supplied; inserts with NULL names, duplicate names, NULL or omitted criticality, and unsupported criticality are attempted; valid services are retrieved by their IDs.",
+      "then": "Valid services receive stable integer primary-key IDs and retain names, descriptions and their one supplied allowed criticality. Each invalid insert is rejected without adding a row, and no criticality is supplied by default."
+    },
+    {
+      "id": "PAR-04",
+      "given": "A supported existing account database contains users and other stored data but does not yet have the parent tables.",
+      "when": "The standalone initializer runs, category and service records are subsequently added, and initialization runs again.",
+      "then": "The first run creates both parent tables empty without changing existing accounts or other data; the second run preserves the category and service identities, values, users and other data, and valid parent-table records remain retrievable."
+    }
+  ]
+}
