@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Incident Management</title>
+  <style>
+    :root { font-family: Inter, Arial, sans-serif; color: #172033; background: #f4f6fb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    header { background: #172554; color: white; padding: 24px max(20px, calc((100% - 1180px)/2)); display:flex; justify-content:space-between; align-items:center; gap:16px; }
+    .account-tools { display:flex; align-items:center; gap:12px; flex-wrap:wrap; } .account-tools span { color:#e0e7ff; font-size:13px; } .account-tools button { background:#fff; color:#172554; }
+    header h1 { margin: 0 0 6px; font-size: 25px; }
+    header p { margin: 0; color: #c7d2fe; }
+    main { max-width: 1180px; margin: 26px auto; padding: 0 18px 40px; }
+    .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 22px; }
+    .stat, .panel { background: white; border: 1px solid #e5e9f2; border-radius: 12px; box-shadow: 0 3px 12px #1725540a; }
+    .stat { padding: 17px; }
+    .stat span { display: block; color: #64748b; font-size: 13px; }
+    .stat strong { display: block; font-size: 27px; margin-top: 8px; }
+    .panel { padding: 20px; margin-bottom: 20px; }
+    h2 { font-size: 18px; margin: 0 0 16px; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 13px; }
+    label { display: block; color: #475569; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    input, select, textarea { width: 100%; padding: 10px 11px; border: 1px solid #cbd5e1; border-radius: 7px; font: inherit; background: white; }
+    textarea { min-height: 82px; resize: vertical; }
+    .wide { grid-column: 1 / -1; }
+    .actions { display: flex; gap: 9px; margin-top: 15px; }
+    button { border: 0; border-radius: 7px; padding: 10px 14px; cursor: pointer; font-weight: 600; }
+    .primary { background: #1d4ed8; color: white; }
+    .secondary { background: #e2e8f0; color: #1e293b; }
+    .danger { background: #fee2e2; color: #991b1b; }
+    .filters { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; margin-bottom: 14px; }
+    .table-wrap { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; min-width: 780px; }
+    th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid #edf0f5; font-size: 13px; vertical-align: top; }
+    th { color: #64748b; background: #f8fafc; }
+    .pill { display: inline-block; border-radius: 20px; padding: 4px 8px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .Critical { background: #fee2e2; color: #991b1b; } .High { background: #ffedd5; color: #9a3412; }
+    .Medium { background: #fef3c7; color: #92400e; } .Low { background: #dcfce7; color: #166534; }
+    .Open { background: #dbeafe; color: #1e40af; } .In-Progress { background: #ede9fe; color: #5b21b6; }
+    .Resolved { background: #dcfce7; color: #166534; } .Closed { background: #e2e8f0; color: #334155; }
+    .row-actions { display: flex; gap: 6px; }
+    .row-actions button { padding: 6px 9px; font-size: 12px; }
+    #message { margin: 0 0 14px; color: #166534; font-size: 14px; }
+    #message.error { color: #b91c1c; }
+    #userManagement { display:none; }
+    .credential-result { display:none; margin-top:14px; padding:13px; border:1px solid #86efac; background:#f0fdf4; border-radius:8px; color:#14532d; }
+    .credential-result code { font-weight:700; }
+    .role-tag { text-transform:capitalize; font-weight:700; }
+    @media (max-width: 800px) { .stats { grid-template-columns: repeat(2, 1fr); } .filters { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 560px) { .form-grid, .filters { grid-template-columns: 1fr; } .wide { grid-column: auto; } }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Incident Management</h1>
+  <p>Report, assign, track, and resolve project incidents.</p>
+  <div class="account-tools"><span id="signedInAs">Loading account…</span><button id="logoutButton" type="button">Sign out</button></div>
+</header>
+<main>
+  <section class="stats" aria-label="Incident summary">
+    <div class="stat"><span>Total incidents</span><strong id="totalCount">0</strong></div>
+    <div class="stat"><span>Open</span><strong id="openCount">0</strong></div>
+    <div class="stat"><span>In progress</span><strong id="progressCount">0</strong></div>
+    <div class="stat"><span>Resolved</span><strong id="resolvedCount">0</strong></div>
+    <div class="stat"><span>Critical priority</span><strong id="criticalCount">0</strong></div>
+  </section>
+
+  <p id="message" role="status"></p>
+
+  <section class="panel">
+    <h2 id="formHeading">Report a new incident</h2>
+    <form id="incidentForm">
+      <input type="hidden" id="incidentId">
+      <div class="form-grid">
+        <div><label for="title">Incident title *</label><input id="title" maxlength="150" required></div>
+        <div><label for="category">Category *</label>
+          <select id="category" required>
+            <option value="">Select category</option>
+            <option>Technical</option><option>Security</option><option>Operational</option>
+            <option>Network</option><option>Other</option>
+          </select>
+        </div>
+        <div><label for="priority">Priority *</label>
+          <select id="priority" required><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select>
+        </div>
+        <div><label for="status">Status</label>
+          <select id="status"><option>Open</option><option>In Progress</option><option>Resolved</option><option>Closed</option></select>
+        </div>
+        <div><label for="reportedBy">Reported by *</label><input id="reportedBy" maxlength="100" required></div>
+        <div><label for="assignedTo">Assigned to</label><input id="assignedTo" maxlength="100" placeholder="Team member name"></div>
+        <div class="wide"><label for="description">Description *</label><textarea id="description" maxlength="3000" required></textarea></div>
+      </div>
+      <div class="actions">
+        <button class="primary" type="submit" id="saveButton">Create incident</button>
+        <button class="secondary" type="button" id="cancelButton" hidden>Cancel edit</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel" id="userManagement">
+    <h2>User Management</h2>
+    <p>Create employee and technician accounts, view usernames, reset passwords, and deactivate accounts.</p>
+    <form id="createAccountForm">
+      <div class="form-grid">
+        <div><label for="newDisplayName">Full name *</label><input id="newDisplayName" maxlength="100" required placeholder="e.g. Priya Sharma"></div>
+        <div><label for="newUsername">Username *</label><input id="newUsername" minlength="3" maxlength="30" pattern="[a-zA-Z0-9._-]+" required placeholder="e.g. priya.sharma"></div>
+        <div><label for="newRole">Role *</label><select id="newRole" required><option value="employee">Employee</option><option value="technician">Technician</option></select></div>
+        <div><label for="newPassword">Initial password * (minimum 8 characters)</label><input id="newPassword" type="password" minlength="8" maxlength="72" required autocomplete="new-password"></div>
+      </div>
+      <div class="actions"><button class="primary" type="submit">Create account</button></div>
+    </form>
+    <div id="credentialResult" class="credential-result" role="status"></div>
+    <h2 style="margin-top:24px">Registered accounts</h2>
+    <div class="table-wrap"><table style="min-width:650px"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead><tbody id="accountRows"><tr><td colspan="6">Loading accounts…</td></tr></tbody></table></div>
+  </section>
+
+  <section class="panel">
+    <h2>Incident register</h2>
+    <div class="filters">
+      <input id="search" placeholder="Search title, description, reporter, assignee…">
+      <select id="statusFilter"><option value="">All statuses</option><option>Open</option><option>In Progress</option><option>Resolved</option><option>Closed</option></select>
+      <select id="priorityFilter"><option value="">All priorities</option><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select>
+      <button class="secondary" id="refreshButton" type="button">Refresh</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Incident</th><th>Priority</th><th>Status</th><th>Assigned to</th><th>Reported by</th><th>Updated</th><th>Actions</th></tr></thead>
+        <tbody id="incidentRows"><tr><td colspan="8">Loading incidents…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+<script src="incident-management.js"></script>
+</body>
+</html>
